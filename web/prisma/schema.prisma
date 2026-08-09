@@ -1,0 +1,194 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------
+// ENUMS
+// ----------------------------------------------------------------
+
+enum Role {
+  USER
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum LessonType {
+  VIDEO
+  PDF
+  QUIZ
+  TEXT
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+// ----------------------------------------------------------------
+// MODELS
+// ----------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  enrollments   Enrollment[]
+  orders        Order[]
+  progress      LessonProgress[]
+  reviews       Review[]
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  parentId    String?
+  parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryToCategory")
+  documents   Document[]
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  documents Document[] @relation("DocumentTags")
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  filePath    String
+  fileType    String
+  coverImage  String?
+  categoryId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category    Category @relation(fields: [categoryId], references: [id])
+  tags        Tag[]    @relation("DocumentTags")
+}
+
+model Course {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  description     String?
+  thumbnail       String?
+  price           Float
+  originalPrice   Float?
+  status          String   @default("draft") // draft, published
+  validityPeriod  Int?     // Number of days, null or 0 means lifetime
+  level           String?  // HSK 1, HSK 2, HSKK
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sections        CourseSection[]
+  enrollments     Enrollment[]
+  orderItems      OrderItem[]
+  reviews         Review[]
+}
+
+model CourseSection {
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String
+  orderIndex  Int      @default(0)
+
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+}
+
+model Lesson {
+  id          String     @id @default(cuid())
+  sectionId   String
+  title       String
+  content     String?    // Text or rich text content
+  videoUrl    String?
+  duration    Int?       // in seconds
+  lessonType  LessonType @default(VIDEO)
+  isPreview   Boolean    @default(false)
+  orderIndex  Int        @default(0)
+
+  section     CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
+}
+
+model Enrollment {
+  id          String    @id @default(cuid())
+  userId      String
+  courseId    String
+  progress    Float     @default(0.0) // 0 to 100 percentage
+  enrolledAt  DateTime  @default(now())
+  expiresAt   DateTime? // Computed from course.validityPeriod
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String
+  total         Float
+  status        OrderStatus @default(PENDING)
+  paymentMethod String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  user          User        @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  courseId  String
+  price     Float
+
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  course    Course @relation(fields: [courseId], references: [id])
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  lessonId    String
+  completed   Boolean   @default(false)
+  watchTime   Int       @default(0) // Seconds watched for video
+  completedAt DateTime?
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  rating    Int      // 1 to 5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
