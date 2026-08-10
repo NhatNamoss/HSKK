@@ -166,7 +166,7 @@ export default function QuestionForm({
     if (res.error) {
       setError(res.error);
     } else {
-      onSuccess({ id: initialData?.id || res.id, ...payload });
+      onSuccess({ id: initialData?.id || (res as any).id, ...payload });
     }
     setLoading(false);
   };
