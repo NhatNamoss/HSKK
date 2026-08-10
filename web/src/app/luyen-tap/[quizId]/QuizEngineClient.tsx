@@ -292,8 +292,8 @@ export default function QuizEngineClient({ quiz }: { quiz: any }) {
                   return (
                     <button
                       key={r.id}
-                      disabled={!!matchedPair}
                       onClick={() => {
+                        if (matchedPair) return; // Prevent clicking if already matched
                         if (!selectedLeft) return; // Must select left first
                         const newPairs = [...pairs, { left: selectedLeft, right: r.id }];
                         setAnswer(JSON.stringify(newPairs));

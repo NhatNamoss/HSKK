@@ -5,7 +5,7 @@ import { Metadata } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import LessonCompleteButton from "./LessonCompleteButton";
-import QuizEngineClient from "@/app/luyen-tap/[quizId]/QuizEngineClient";
+import CourseQuizEngineClient from "./CourseQuizEngineClient";
 
 export async function generateMetadata({ params }: { params: { courseSlug: string } }): Promise<Metadata> {
   const { courseSlug } = await params;
@@ -97,6 +97,20 @@ export default async function LearningPage({
       }
       if (nextLesson) break;
     }
+  }
+
+  // Lấy pastAttempt nếu bài học hiện tại là QUIZ
+  let pastAttempt = null;
+  if (session?.user?.id && currentLesson?.lessonType === "QUIZ" && currentLesson.quizId) {
+    const attempt = await prisma.quizAttempt.findFirst({
+      where: {
+        userId: session.user.id,
+        quizId: currentLesson.quizId,
+        status: "COMPLETED"
+      },
+      orderBy: { finishedAt: "desc" }
+    });
+    pastAttempt = attempt;
   }
 
   return (
@@ -227,9 +241,9 @@ export default async function LearningPage({
                   )}
                 </div>
               ) : currentLesson.lessonType === "QUIZ" ? (
-                <div className="w-full h-full bg-gray-50 flex-1 overflow-y-auto">
+                <div className="w-full h-full bg-gray-900 flex-1 overflow-y-auto">
                   {currentLesson.quiz ? (
-                    <QuizEngineClient quiz={currentLesson.quiz} />
+                    <CourseQuizEngineClient quiz={currentLesson.quiz} pastAttempt={pastAttempt} />
                   ) : (
                     <div className="text-center p-8 bg-gray-900 border border-gray-800 rounded-xl m-8">
                        <p className="text-gray-500">Bài kiểm tra đang được cập nhật</p>
