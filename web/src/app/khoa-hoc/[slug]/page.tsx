@@ -184,32 +184,45 @@ export default async function CourseDetailPage({
                     </div>
                     
                     <div className="divide-y divide-gray-100">
-                      {section.lessons.map((lesson, lIdx) => (
-                        <div key={lesson.id} className="px-6 py-4 flex items-center hover:bg-gray-50 transition-colors group">
-                          <div className="mr-4 text-brand-teal opacity-70 group-hover:opacity-100 transition-opacity">
-                            {lesson.lessonType === "VIDEO" && (
-                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                      {section.lessons.map((lesson, lIdx) => {
+                        const lessonContent = (
+                          <>
+                            <div className="mr-4 text-brand-teal opacity-70 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                              {lesson.lessonType === "VIDEO" && (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                              )}
+                              {lesson.lessonType === "PDF" && (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
+                              )}
+                              {lesson.lessonType === "QUIZ" && (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-medium ${lesson.isPreview ? 'text-brand-teal' : 'text-gray-800'} line-clamp-1`}>
+                                Bài {lIdx + 1}: {lesson.title}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-0.5">{lesson.lessonType}{lesson.duration ? ` • ${Math.floor(lesson.duration / 60)} phút` : ''}</p>
+                            </div>
+                            {lesson.isPreview && (
+                              <span className="bg-brand-coral/10 text-brand-coral text-xs font-bold px-2 py-1 rounded flex-shrink-0">Học thử</span>
                             )}
-                            {lesson.lessonType === "PDF" && (
-                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
+                            {!lesson.isPreview && (
+                              <svg className="w-4 h-4 text-gray-300 ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
                             )}
-                            {lesson.lessonType === "QUIZ" && (
-                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
-                            )}
+                          </>
+                        );
+
+                        return lesson.isPreview ? (
+                          <Link key={lesson.id} href={`/hoc/${course.slug}?lessonId=${lesson.id}`} className="px-6 py-4 flex items-center hover:bg-brand-teal/5 transition-colors group border-b border-gray-100 last:border-0">
+                            {lessonContent}
+                          </Link>
+                        ) : (
+                          <div key={lesson.id} className="px-6 py-4 flex items-center transition-colors group border-b border-gray-100 last:border-0">
+                            {lessonContent}
                           </div>
-                          <div className="flex-1">
-                            <p className={`font-medium ${lesson.isPreview ? 'text-brand-teal cursor-pointer hover:underline' : 'text-gray-800'}`}>
-                              Bài {lIdx + 1}: {lesson.title}
-                            </p>
-                          </div>
-                          {lesson.isPreview && (
-                            <span className="bg-brand-coral/10 text-brand-coral text-xs font-bold px-2 py-1 rounded">Học thử</span>
-                          )}
-                          {!lesson.isPreview && (
-                            <svg className="w-4 h-4 text-gray-300 ml-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))

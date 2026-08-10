@@ -2,14 +2,14 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import LessonCompleteButton from "./LessonCompleteButton";
 
 export async function generateMetadata({ params }: { params: { courseSlug: string } }): Promise<Metadata> {
   const { courseSlug } = await params;
-  const course = await prisma.course.findUnique({
-    where: { slug: courseSlug },
-  });
-
-  if (!course) return { title: "Không tìm thấy khóa học" };
+  const course = await prisma.course.findUnique({ where: { slug: courseSlug } });
+  if (!course) return { title: "Không tìm thấy" };
   return { title: `Học: ${course.title} - Hán Ngữ Natra` };
 }
 
@@ -22,15 +22,15 @@ export default async function LearningPage({
 }) {
   const { courseSlug } = await params;
   const { lessonId } = await searchParams;
-  
+
+  const session = await getServerSession(authOptions);
+
   const course = await prisma.course.findUnique({
     where: { slug: courseSlug },
     include: {
       sections: {
         include: {
-          lessons: {
-            orderBy: { orderIndex: 'asc' }
-          }
+          lessons: { orderBy: { orderIndex: 'asc' } }
         },
         orderBy: { orderIndex: 'asc' }
       }
@@ -39,77 +39,119 @@ export default async function LearningPage({
 
   if (!course) notFound();
 
-  // Tìm bài học hiện tại, mặc định là bài đầu tiên của chương đầu tiên
+  // Lấy danh sách bài đã hoàn thành của user
+  const allLessonIds = course.sections.flatMap(s => s.lessons.map(l => l.id));
+  let completedLessonIds: string[] = [];
+
+  if (session?.user?.id) {
+    const progress = await prisma.lessonProgress.findMany({
+      where: {
+        userId: session.user.id,
+        lessonId: { in: allLessonIds },
+        completed: true
+      },
+      select: { lessonId: true }
+    });
+    completedLessonIds = progress.map(p => p.lessonId);
+  }
+
+  const totalLessons = allLessonIds.length;
+  const completedCount = completedLessonIds.length;
+  const progressPercent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+  // Tìm bài học hiện tại
   let currentLesson = null;
-  
   if (lessonId) {
     for (const section of course.sections) {
       const found = section.lessons.find(l => l.id === lessonId);
-      if (found) {
-        currentLesson = found;
-        break;
-      }
+      if (found) { currentLesson = found; break; }
     }
   }
-  
   if (!currentLesson && course.sections.length > 0 && course.sections[0].lessons.length > 0) {
     currentLesson = course.sections[0].lessons[0];
   }
 
+  const isCurrentLessonCompleted = currentLesson ? completedLessonIds.includes(currentLesson.id) : false;
+
+  // Tìm bài học tiếp theo
+  let nextLesson = null;
+  if (currentLesson) {
+    let found = false;
+    for (const section of course.sections) {
+      for (const lesson of section.lessons) {
+        if (found) { nextLesson = lesson; break; }
+        if (lesson.id === currentLesson.id) found = true;
+      }
+      if (nextLesson) break;
+    }
+  }
+
   return (
     <div className="bg-gray-900 min-h-screen text-gray-200 flex flex-col md:flex-row">
-      
-      {/* Sidebar - Danh sách bài học */}
+
+      {/* Sidebar */}
       <div className="w-full md:w-80 lg:w-96 bg-gray-800 border-r border-gray-700 flex flex-col h-[50vh] md:h-screen sticky top-0 order-2 md:order-1">
         
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-          <h2 className="font-bold text-white line-clamp-1">{course.title}</h2>
-          <Link href={`/khoa-hoc/${course.slug}`} className="text-gray-400 hover:text-white transition-colors" title="Thoát khóa học">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          </Link>
+        <div className="p-4 border-b border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-white line-clamp-1 text-sm">{course.title}</h2>
+            <Link href={`/khoa-hoc/${course.slug}`} className="text-gray-400 hover:text-white" title="Thoát">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </Link>
+          </div>
+          
+          {/* Progress bar */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>Tiến độ</span>
+              <span className="font-bold text-brand-teal">{completedCount}/{totalLessons} bài • {progressPercent}%</span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-1.5">
+              <div 
+                className="bg-brand-teal h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+              ></div>
+            </div>
+          </div>
         </div>
-        
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+
+        <div className="flex-1 overflow-y-auto">
           {course.sections.map((section, idx) => (
             <div key={section.id} className="border-b border-gray-700/50">
-              <div className="bg-gray-800/80 px-4 py-3 sticky top-0 z-10 backdrop-blur-sm">
-                <h3 className="font-bold text-gray-300 text-sm uppercase tracking-wider">
+              <div className="bg-gray-800/80 px-4 py-3 sticky top-0 z-10">
+                <h3 className="font-bold text-gray-400 text-xs uppercase tracking-wider">
                   Chương {idx + 1}: {section.title}
                 </h3>
               </div>
-              
               <ul className="divide-y divide-gray-700/30">
                 {section.lessons.map((lesson, lIdx) => {
                   const isActive = currentLesson?.id === lesson.id;
-                  
+                  const isDone = completedLessonIds.includes(lesson.id);
                   return (
                     <li key={lesson.id}>
-                      <Link 
+                      <Link
                         href={`/hoc/${course.slug}?lessonId=${lesson.id}`}
-                        className={`flex items-start px-4 py-3 transition-colors ${
-                          isActive 
-                            ? 'bg-brand-teal/20 border-l-4 border-brand-teal text-white' 
-                            : 'hover:bg-gray-700/50 border-l-4 border-transparent text-gray-400'
+                        className={`flex items-center px-4 py-3 transition-colors group ${
+                          isActive
+                            ? 'bg-brand-teal/20 border-l-4 border-brand-teal'
+                            : 'hover:bg-gray-700/50 border-l-4 border-transparent'
                         }`}
                       >
-                        <div className="mt-0.5 mr-3 flex-shrink-0">
-                          {lesson.lessonType === "VIDEO" && (
-                            <svg className={`w-5 h-5 ${isActive ? 'text-brand-teal' : ''}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                          )}
-                          {lesson.lessonType === "PDF" && (
-                            <svg className={`w-5 h-5 ${isActive ? 'text-brand-teal' : ''}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
-                          )}
-                          {lesson.lessonType === "QUIZ" && (
-                            <svg className={`w-5 h-5 ${isActive ? 'text-brand-teal' : ''}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
+                        {/* Completed checkmark or lesson icon */}
+                        <div className="mr-3 flex-shrink-0 w-5 h-5">
+                          {isDone ? (
+                            <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                          ) : (
+                            <svg className={`w-5 h-5 ${isActive ? 'text-brand-teal' : 'text-gray-500'}`} fill="currentColor" viewBox="0 0 20 20">
+                              {lesson.lessonType === "VIDEO" ? <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /> : <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />}
+                            </svg>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium ${isActive ? 'text-brand-teal' : ''} line-clamp-2`}>
+                          <p className={`text-sm font-medium line-clamp-2 ${isActive ? 'text-brand-teal' : isDone ? 'text-gray-400' : 'text-gray-300'}`}>
                             {lIdx + 1}. {lesson.title}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1 flex items-center">
-                            {lesson.lessonType} {lesson.duration ? `• ${Math.floor(lesson.duration / 60)} phút` : ''}
-                          </p>
+                          <p className="text-xs text-gray-600 mt-0.5">{lesson.lessonType}</p>
                         </div>
                       </Link>
                     </li>
@@ -121,24 +163,31 @@ export default async function LearningPage({
         </div>
       </div>
 
-      {/* Main Content - Player */}
-      <div className="flex-1 flex flex-col order-1 md:order-2">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col order-1 md:order-2 overflow-hidden">
         {currentLesson ? (
           <>
-            <div className="flex-1 bg-black w-full flex items-center justify-center relative">
+            {/* Video / PDF player */}
+            <div className="bg-black w-full flex items-center justify-center" style={{ minHeight: '300px', maxHeight: '60vh' }}>
               {currentLesson.lessonType === "VIDEO" ? (
                 currentLesson.videoUrl ? (
-                  // Simple iframe for youtube/vimeo or video tag for direct mp4
-                  <div className="w-full h-full aspect-video md:aspect-auto">
-                    {currentLesson.videoUrl.includes('youtube') || currentLesson.videoUrl.includes('vimeo') ? (
-                      <iframe 
-                        src={currentLesson.videoUrl} 
+                  <div className="w-full h-full" style={{ aspectRatio: '16/9' }}>
+                    {currentLesson.videoUrl.includes('youtube.com') || currentLesson.videoUrl.includes('youtu.be') ? (
+                      <iframe
+                        src={currentLesson.videoUrl.replace('watch?v=', 'embed/')}
                         className="w-full h-full"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
                       ></iframe>
+                    ) : currentLesson.videoUrl.includes('vimeo.com') ? (
+                      <iframe
+                        src={`https://player.vimeo.com/video/${currentLesson.videoUrl.split('/').pop()}`}
+                        className="w-full h-full"
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
                     ) : (
-                      <video 
+                      <video
                         src={currentLesson.videoUrl}
                         controls
                         className="w-full h-full object-contain"
@@ -153,26 +202,57 @@ export default async function LearningPage({
                   </div>
                 )
               ) : currentLesson.lessonType === "PDF" ? (
-                <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center p-8">
+                <div className="w-full h-full min-h-[300px] bg-gray-100 flex flex-col items-center justify-center p-8">
                   <svg className="w-20 h-20 text-red-500 mb-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
-                  <a href={currentLesson.videoUrl || "#"} target="_blank" rel="noreferrer" className="px-8 py-3 bg-brand-coral hover:bg-brand-coral/90 text-white font-bold rounded-lg shadow-lg">
-                    Mở tài liệu PDF
-                  </a>
+                  <p className="text-gray-600 mb-4 text-center font-medium">{currentLesson.title}</p>
+                  {currentLesson.videoUrl ? (
+                    <a href={currentLesson.videoUrl} target="_blank" rel="noreferrer" className="px-8 py-3 bg-brand-coral hover:bg-brand-coral/90 text-white font-bold rounded-xl shadow-lg">
+                      📥 Mở / Tải tài liệu PDF
+                    </a>
+                  ) : (
+                    <p className="text-gray-400 text-sm">Tài liệu đang được cập nhật</p>
+                  )}
                 </div>
               ) : (
                 <div className="text-center p-8">
-                  <p className="text-xl text-gray-300 font-bold mb-4">Bài tập trắc nghiệm</p>
-                  <button className="px-8 py-3 bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-lg shadow-lg">
+                  <p className="text-xl text-gray-300 font-bold mb-4">📋 Bài tập trắc nghiệm</p>
+                  <button className="px-8 py-3 bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-xl shadow-lg">
                     Bắt đầu làm bài
                   </button>
                 </div>
               )}
             </div>
-            
-            <div className="bg-gray-900 border-t border-gray-800 p-6 md:p-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">{currentLesson.title}</h1>
+
+            {/* Lesson Info */}
+            <div className="bg-gray-900 border-t border-gray-800 p-6 md:p-8 flex-1 overflow-y-auto">
+              <div className="flex flex-col md:flex-row md:items-start gap-4 mb-6">
+                <div className="flex-1">
+                  <h1 className="text-xl md:text-2xl font-bold text-white">{currentLesson.title}</h1>
+                  <p className="text-gray-500 text-sm mt-1">{currentLesson.lessonType} {currentLesson.duration ? `• ${Math.floor(currentLesson.duration / 60)} phút` : ''}</p>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  {session?.user && (
+                    <LessonCompleteButton 
+                      lessonId={currentLesson.id}
+                      courseSlug={course.slug}
+                      isCompleted={isCurrentLessonCompleted}
+                    />
+                  )}
+                  {nextLesson && (
+                    <Link 
+                      href={`/hoc/${course.slug}?lessonId=${nextLesson.id}`}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-gray-700 text-white rounded-xl font-medium text-sm hover:bg-gray-600 transition-colors"
+                    >
+                      Bài tiếp theo
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                    </Link>
+                  )}
+                </div>
+              </div>
+
               {currentLesson.content && (
-                <div className="text-gray-400 prose prose-invert max-w-none">
+                <div className="text-gray-400 space-y-2 border-t border-gray-800 pt-6">
                   {currentLesson.content.split('\n').map((line, i) => (
                     <p key={i}>{line}</p>
                   ))}
@@ -182,13 +262,11 @@ export default async function LearningPage({
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-900">
-            <svg className="w-20 h-20 text-gray-700 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            <h2 className="text-2xl font-bold text-gray-400 mb-2">Khóa học chưa có bài giảng nào</h2>
-            <p className="text-gray-600">Giảng viên đang biên soạn nội dung và sẽ cập nhật sớm nhất.</p>
+            <h2 className="text-2xl font-bold text-gray-400 mb-2">Khóa học chưa có bài giảng</h2>
+            <p className="text-gray-600">Giảng viên đang biên soạn nội dung.</p>
           </div>
         )}
       </div>
-
     </div>
   );
 }
