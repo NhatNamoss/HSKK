@@ -2,6 +2,9 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import CourseActionButtons from "./CourseActionButtons";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const { slug } = await params;
@@ -45,6 +48,24 @@ export default async function CourseDetailPage({
 
   if (!course) {
     notFound();
+  }
+
+  // Lấy session để check xem user đã mua khóa này chưa
+  const session = await getServerSession(authOptions);
+  let hasEnrolled = false;
+
+  if (session?.user?.id) {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: {
+          userId: session.user.id,
+          courseId: course.id
+        }
+      }
+    });
+    if (enrollment) {
+      hasEnrolled = true;
+    }
   }
 
   // Tính tổng số bài giảng
@@ -122,12 +143,12 @@ export default async function CourseDetailPage({
                     )}
                   </div>
                   
-                  <Link 
-                    href={course.price === 0 ? `/hoc/${course.slug}` : `/checkout/${course.slug}`}
-                    className="block w-full bg-brand-coral text-white text-center font-bold py-4 rounded-xl hover:bg-opacity-90 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
-                  >
-                    {course.price === 0 ? "VÀO HỌC NGAY" : "MUA KHÓA HỌC"}
-                  </Link>
+                  <CourseActionButtons 
+                    courseId={course.id} 
+                    price={course.price} 
+                    slug={course.slug} 
+                    hasEnrolled={hasEnrolled}
+                  />
                   
                   <p className="text-center text-xs text-gray-500 mt-4">
                     {course.validityPeriod ? `Truy cập trong ${course.validityPeriod} ngày` : "Sở hữu khóa học trọn đời"}
