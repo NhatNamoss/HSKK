@@ -178,6 +178,34 @@ export async function submitAttempt(
       },
     });
 
+    // Cập nhật tiến độ bài học nếu đạt điểm (>= 50)
+    if (score >= 50) {
+      const lessons = await prisma.lesson.findMany({
+        where: { quizId: attempt.quizId },
+        select: { id: true, section: { select: { course: { select: { slug: true } } } } }
+      });
+      
+      for (const lesson of lessons) {
+        await prisma.lessonProgress.upsert({
+          where: {
+            userId_lessonId: {
+              userId: session.user.id,
+              lessonId: lesson.id
+            }
+          },
+          update: { completed: true, completedAt: new Date() },
+          create: {
+            userId: session.user.id,
+            lessonId: lesson.id,
+            completed: true,
+            completedAt: new Date()
+          }
+        });
+        
+        revalidatePath(`/hoc/${lesson.section.course.slug}`);
+      }
+    }
+
     revalidatePath(`/luyen-tap/${attempt.quizId}/ket-qua/${attemptId}`);
     revalidatePath("/ca-nhan");
     return { success: true, score, earnedPoints, totalPoints };

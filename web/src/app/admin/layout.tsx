@@ -32,6 +32,7 @@ export default function AdminLayout({
     { name: "Quản lý Tài liệu", path: "/admin/documents", icon: "📚" },
     { name: "Danh mục & Thẻ", path: "/admin/categories", icon: "🏷️" },
     { name: "Quản lý Khóa học", path: "/admin/courses", icon: "🎓" },
+    { name: "Quản lý Luyện tập", path: "/admin/quizzes", icon: "📝" },
     { name: "Người dùng", path: "/admin/users", icon: "👥" },
     { name: "Đơn hàng", path: "/admin/orders", icon: "🛒" },
   ];

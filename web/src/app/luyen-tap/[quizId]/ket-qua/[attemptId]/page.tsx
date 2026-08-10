@@ -125,6 +125,42 @@ export default async function QuizResultPage({ params }: { params: { quizId: str
                          }
                        })()}
                      </div>
+                  ) : q.questionType === "FILL_IN_BLANK" ? (
+                     <div className="text-gray-900 font-medium flex flex-wrap gap-2">
+                       {(() => {
+                         try {
+                           const arr = JSON.parse(ans.answer);
+                           if (arr.length === 0) return <span className="text-gray-400 italic">Bỏ trống</span>;
+                           return arr.map((ansText: string, i: number) => (
+                             <span key={i} className="px-2 py-1 bg-white border rounded shadow-sm text-sm font-medium">{ansText || "..."}</span>
+                           ));
+                         } catch {
+                           return ans.answer || <span className="text-gray-400 italic">Bỏ trống</span>;
+                         }
+                       })()}
+                     </div>
+                  ) : q.questionType === "MATCHING" ? (
+                     <div className="text-gray-900 font-medium space-y-2">
+                       {(() => {
+                         try {
+                           const pairs = JSON.parse(ans.answer);
+                           if (pairs.length === 0) return <span className="text-gray-400 italic">Bỏ trống</span>;
+                           return pairs.map((p: any, i: number) => {
+                             const leftContent = q.choices.find((c: any) => c.id === p.left)?.content;
+                             const rightContent = q.choices.find((c: any) => c.id === p.right)?.content;
+                             return (
+                               <div key={i} className="flex items-center gap-2">
+                                 <span className="px-3 py-1 bg-gray-100 rounded text-sm">{leftContent}</span>
+                                 <span className="text-gray-400">→</span>
+                                 <span className="px-3 py-1 bg-gray-100 rounded text-sm">{rightContent}</span>
+                               </div>
+                             );
+                           });
+                         } catch {
+                           return <span className="text-gray-400 italic">Lỗi định dạng</span>;
+                         }
+                       })()}
+                     </div>
                   ) : (
                      <div className="text-gray-900 font-medium">
                        {ans.answer || <span className="text-gray-400 italic">Bỏ trống</span>}

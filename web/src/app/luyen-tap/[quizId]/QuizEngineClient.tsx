@@ -92,7 +92,11 @@ export default function QuizEngineClient({ quiz }: { quiz: any }) {
       setError(res.error);
       setState("PLAYING");
     } else {
-      router.push(`/luyen-tap/${quiz.id}/ket-qua/${attemptId}`);
+      if (typeof window !== "undefined" && window.location.pathname.includes("/hoc/")) {
+        window.location.reload();
+      } else {
+        router.push(`/luyen-tap/${quiz.id}/ket-qua/${attemptId}`);
+      }
     }
   };
 
@@ -155,183 +159,177 @@ export default function QuizEngineClient({ quiz }: { quiz: any }) {
   // PLAYING STATE
   const currentAnswer = answers[currentQuestion.id] || "";
 
-  return (
-    <div className="max-w-3xl mx-auto">
-      {/* Header Bar */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between mb-6 sticky top-4 z-10">
-        <div className="font-bold text-gray-800">
-          Câu {currentIndex + 1} / {questions.length}
-        </div>
-        
-        {timeLeft !== null && (
-          <div className={`font-mono text-lg font-bold px-4 py-1.5 rounded-lg ${timeLeft < 60 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-brand-teal/10 text-brand-teal'}`}>
-            {formatTime(timeLeft)}
-          </div>
-        )}
+  // Handle Reading Split
+  const isReadingSplit = currentQuestion.question.includes("|||");
+  let readingText = "";
+  let actualQuestionText = currentQuestion.question;
+  
+  if (isReadingSplit) {
+    const parts = currentQuestion.question.split("|||");
+    readingText = parts[0].trim();
+    actualQuestionText = parts.slice(1).join("|||").trim();
+  }
 
-        <button
-          onClick={() => {
-            if(confirm("Bạn có chắc chắn muốn nộp bài sớm?")) handleSubmit();
-          }}
-          className="text-brand-coral font-bold text-sm hover:underline"
-        >
-          Nộp bài
-        </button>
+  const renderQuestionBody = () => (
+    <>
+      <div className="mb-6">
+        <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg mb-3">
+          {currentQuestion.points} điểm • {
+            currentQuestion.questionType === "MULTIPLE_CHOICE" ? "Trắc nghiệm" :
+            currentQuestion.questionType === "FILL_IN_BLANK" ? "Điền từ" :
+            currentQuestion.questionType === "MATCHING" ? "Nối đôi" :
+            currentQuestion.questionType === "WORD_ORDER" ? "Sắp xếp" : "Thanh điệu"
+          }
+        </span>
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-relaxed whitespace-pre-wrap">
+          {actualQuestionText.split("___").map((part, i, arr) => {
+            let parsedAnswers: string[] = [];
+            if (currentQuestion.questionType === "FILL_IN_BLANK") {
+              try { parsedAnswers = JSON.parse(currentAnswer || "[]"); } catch {}
+            }
+            
+            return (
+              <span key={i}>
+                {part}
+                {i < arr.length - 1 && (
+                  currentQuestion.questionType === "FILL_IN_BLANK" ? (
+                    <input 
+                      type="text"
+                      value={parsedAnswers[i] || ""}
+                      onChange={(e) => {
+                        const newAns = [...parsedAnswers];
+                        newAns[i] = e.target.value;
+                        setAnswer(JSON.stringify(newAns));
+                      }}
+                      className="inline-block w-32 mx-2 border-b-2 border-brand-teal text-brand-teal text-center focus:outline-none bg-brand-teal/5 font-bold"
+                    />
+                  ) : (
+                    <span className="inline-block w-16 mx-1 border-b-2 border-brand-teal text-brand-teal text-center px-2">...</span>
+                  )
+                )}
+              </span>
+            );
+          })}
+        </h2>
       </div>
 
-      {/* Question Card */}
-      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 mb-6 min-h-[400px]">
-        {/* Tiêu đề câu hỏi */}
-        <div className="mb-6">
-          <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg mb-3">
-            {currentQuestion.points} điểm • {
-              currentQuestion.questionType === "MULTIPLE_CHOICE" ? "Trắc nghiệm" :
-              currentQuestion.questionType === "FILL_IN_BLANK" ? "Điền từ" :
-              currentQuestion.questionType === "MATCHING" ? "Nối đôi" :
-              currentQuestion.questionType === "WORD_ORDER" ? "Sắp xếp" : "Thanh điệu"
-            }
-          </span>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-relaxed whitespace-pre-wrap">
-            {currentQuestion.question.split("___").map((part, i, arr) => {
-              let parsedAnswers: string[] = [];
-              if (currentQuestion.questionType === "FILL_IN_BLANK") {
-                try { parsedAnswers = JSON.parse(currentAnswer || "[]"); } catch {}
-              }
-              
-              return (
-                <span key={i}>
-                  {part}
-                  {i < arr.length - 1 && (
-                    currentQuestion.questionType === "FILL_IN_BLANK" ? (
-                      <input 
-                        type="text"
-                        value={parsedAnswers[i] || ""}
-                        onChange={(e) => {
-                          const newAns = [...parsedAnswers];
-                          newAns[i] = e.target.value;
-                          setAnswer(JSON.stringify(newAns));
-                        }}
-                        className="inline-block w-32 mx-2 border-b-2 border-brand-teal text-brand-teal text-center focus:outline-none bg-brand-teal/5 font-bold"
-                      />
-                    ) : (
-                      <span className="inline-block w-16 mx-1 border-b-2 border-brand-teal text-brand-teal text-center px-2">...</span>
-                    )
-                  )}
-                </span>
-              );
-            })}
-          </h2>
+      {/* Multimedia */}
+      {currentQuestion.imageUrl && (
+        <img src={currentQuestion.imageUrl} alt="Question" className="max-w-full rounded-xl mb-6 mx-auto max-h-64 object-contain" />
+      )}
+      {currentQuestion.audioUrl && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-xl flex items-center gap-4">
+          <div className="w-10 h-10 bg-brand-teal rounded-full flex items-center justify-center text-white flex-shrink-0">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" /></svg>
+          </div>
+          <audio controls src={currentQuestion.audioUrl} className="w-full"></audio>
         </div>
+      )}
 
-        {/* Multimedia */}
-        {currentQuestion.imageUrl && (
-          <img src={currentQuestion.imageUrl} alt="Question" className="max-w-full rounded-xl mb-6 mx-auto max-h-64 object-contain" />
-        )}
-        {currentQuestion.audioUrl && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-xl flex items-center gap-4">
-            <div className="w-10 h-10 bg-brand-teal rounded-full flex items-center justify-center text-white flex-shrink-0">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" /></svg>
-            </div>
-            <audio controls src={currentQuestion.audioUrl} className="w-full"></audio>
+      {/* Inputs */}
+      <div className="mt-8">
+        
+        {/* 1. TRẮC NGHIỆM / THANH ĐIỆU */}
+        {(currentQuestion.questionType === "MULTIPLE_CHOICE" || currentQuestion.questionType === "TONE_RECOGNITION") && (
+          <div className="space-y-3">
+            {currentQuestion.choices.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setAnswer(c.id)}
+                className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                  currentAnswer === c.id 
+                    ? 'border-brand-teal bg-brand-teal/5 font-bold text-brand-teal' 
+                    : 'border-gray-100 hover:border-gray-300 text-gray-700 bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                {currentQuestion.questionType === "TONE_RECOGNITION" ? <span className="text-2xl">{c.content}</span> : c.content}
+              </button>
+            ))}
           </div>
         )}
 
-        {/* Inputs */}
-        <div className="mt-8">
-          
-          {/* 1. TRẮC NGHIỆM / THANH ĐIỆU */}
-          {(currentQuestion.questionType === "MULTIPLE_CHOICE" || currentQuestion.questionType === "TONE_RECOGNITION") && (
-            <div className="space-y-3">
-              {currentQuestion.choices.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setAnswer(c.id)}
-                  className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                    currentAnswer === c.id 
-                      ? 'border-brand-teal bg-brand-teal/5 font-bold text-brand-teal' 
-                      : 'border-gray-100 hover:border-gray-300 text-gray-700 bg-gray-50 hover:bg-gray-100'
-                  }`}
-                >
-                  {currentQuestion.questionType === "TONE_RECOGNITION" ? <span className="text-2xl">{c.content}</span> : c.content}
-                </button>
-              ))}
-            </div>
-          )}
+        {/* 2. ĐIỀN TỪ - Đã xử lý inline trên tiêu đề */}
 
-          {/* 2. ĐIỀN TỪ - Đã xử lý inline trên tiêu đề */}
+        {/* 3. NỐI ĐÔI */}
+        {currentQuestion.questionType === "MATCHING" && (
+          <div className="grid grid-cols-2 gap-4 md:gap-8 mt-4">
+             <div className="space-y-4">
+               <h4 className="text-center font-bold text-gray-500 mb-4 uppercase text-sm">Cột trái</h4>
+               {leftCol.map(l => {
+                  let pairs: any[] = [];
+                  try { pairs = JSON.parse(currentAnswer || "[]"); } catch {}
+                  const isMatched = pairs.some((p: any) => p.left === l.id);
+                  const isSelected = selectedLeft === l.id;
 
-          {/* 3. NỐI ĐÔI */}
-          {currentQuestion.questionType === "MATCHING" && (
-            <div className="grid grid-cols-2 gap-8 mt-4">
-               <div className="space-y-4">
-                 <h4 className="text-center font-bold text-gray-500 mb-4 uppercase text-sm">Cột trái</h4>
-                 {leftCol.map(l => {
-                    let pairs: any[] = [];
-                    try { pairs = JSON.parse(currentAnswer || "[]"); } catch {}
-                    const isMatched = pairs.some((p: any) => p.left === l.id);
-                    const isSelected = selectedLeft === l.id;
+                  return (
+                    <button
+                      key={l.id}
+                      disabled={isMatched}
+                      onClick={() => setSelectedLeft(isSelected ? null : l.id)}
+                      className={`w-full p-4 rounded-xl border-2 font-bold transition-all ${
+                        isMatched ? 'bg-gray-100 border-gray-200 text-gray-400 opacity-50 line-through' :
+                        isSelected ? 'bg-brand-teal/10 border-brand-teal text-brand-teal shadow-md transform scale-105' :
+                        'bg-white border-gray-200 hover:border-brand-teal text-gray-700 hover:shadow-sm'
+                      }`}
+                    >
+                      {l.content}
+                    </button>
+                  )
+               })}
+             </div>
+             
+             {/* Khu vực thẻ đã nối tạm thời được hiển thị ở cột phải nếu màn hình quá nhỏ, 
+                 hoặc có thể hiển thị dưới dạng icon */}
+                 
+             <div className="space-y-4">
+               <h4 className="text-center font-bold text-gray-500 mb-4 uppercase text-sm">Cột phải</h4>
+               {rightCol.map(r => {
+                  let pairs: any[] = [];
+                  try { pairs = JSON.parse(currentAnswer || "[]"); } catch {}
+                  const matchedPair = pairs.find((p: any) => p.right === r.id);
+                  const matchedLeft = matchedPair ? leftCol.find(l => l.id === matchedPair.left) : null;
 
-                    return (
-                      <button
-                        key={l.id}
-                        disabled={isMatched}
-                        onClick={() => setSelectedLeft(isSelected ? null : l.id)}
-                        className={`w-full p-4 rounded-xl border-2 font-bold transition-all ${
-                          isMatched ? 'bg-gray-100 border-gray-200 text-gray-400 opacity-50 line-through' :
-                          isSelected ? 'bg-brand-teal/10 border-brand-teal text-brand-teal shadow-md transform scale-105' :
-                          'bg-white border-gray-200 hover:border-brand-teal text-gray-700 hover:shadow-sm'
-                        }`}
-                      >
-                        {l.content}
-                      </button>
-                    )
-                 })}
-               </div>
-               <div className="space-y-4">
-                 <h4 className="text-center font-bold text-gray-500 mb-4 uppercase text-sm">Cột phải</h4>
-                 {rightCol.map(r => {
-                    let pairs: any[] = [];
-                    try { pairs = JSON.parse(currentAnswer || "[]"); } catch {}
-                    const matchedPair = pairs.find((p: any) => p.right === r.id);
-                    const matchedLeft = matchedPair ? leftCol.find(l => l.id === matchedPair.left) : null;
-
-                    return (
-                      <button
-                        key={r.id}
-                        disabled={!!matchedPair}
-                        onClick={() => {
-                          if (!selectedLeft) return; // Must select left first
-                          const newPairs = [...pairs, { left: selectedLeft, right: r.id }];
-                          setAnswer(JSON.stringify(newPairs));
-                          setSelectedLeft(null);
-                        }}
-                        className={`w-full p-4 rounded-xl border-2 font-bold transition-all ${
-                          matchedPair ? 'bg-green-50 border-green-200 text-green-700' :
-                          selectedLeft ? 'bg-white border-brand-teal/50 hover:bg-brand-teal/5 cursor-pointer hover:shadow-md border-dashed' :
-                          'bg-white border-gray-200 text-gray-400 cursor-not-allowed'
-                        }`}
-                      >
-                        {matchedPair ? (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded line-clamp-1 max-w-[40%] mr-2" title={matchedLeft?.content}>{matchedLeft?.content}</span>
-                            <span className="flex-1 text-right">{r.content}</span>
-                            <span 
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 const newPairs = pairs.filter((p: any) => p.right !== r.id);
-                                 setAnswer(JSON.stringify(newPairs));
-                               }}
-                               className="ml-2 text-red-400 hover:text-red-600 cursor-pointer bg-white rounded-full w-6 h-6 flex items-center justify-center border border-red-200"
-                               title="Hủy nối"
-                            >✕</span>
+                  return (
+                    <button
+                      key={r.id}
+                      disabled={!!matchedPair}
+                      onClick={() => {
+                        if (!selectedLeft) return; // Must select left first
+                        const newPairs = [...pairs, { left: selectedLeft, right: r.id }];
+                        setAnswer(JSON.stringify(newPairs));
+                        setSelectedLeft(null);
+                      }}
+                      className={`w-full p-4 rounded-xl border-2 font-bold transition-all flex flex-col items-center justify-center min-h-[64px] ${
+                        matchedPair ? 'bg-green-50 border-green-200 text-green-700 p-2' :
+                        selectedLeft ? 'bg-white border-brand-teal/50 hover:bg-brand-teal/5 cursor-pointer hover:shadow-md border-dashed' :
+                        'bg-white border-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {matchedPair ? (
+                        <div className="w-full flex items-center justify-between text-left">
+                          <div className="flex-1 min-w-0 pr-2">
+                             <div className="text-[10px] text-green-500 font-bold uppercase mb-0.5 border-b border-green-100 pb-0.5">Đã nối với: {matchedLeft?.content}</div>
+                             <div className="font-bold">{r.content}</div>
                           </div>
-                        ) : r.content}
-                      </button>
-                    )
-                 })}
-               </div>
-            </div>
-          )}
+                          <span 
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               const newPairs = pairs.filter((p: any) => p.right !== r.id);
+                               setAnswer(JSON.stringify(newPairs));
+                             }}
+                             className="text-red-400 hover:text-red-600 hover:bg-red-50 cursor-pointer bg-white rounded-full w-8 h-8 flex items-center justify-center border border-red-200 shadow-sm flex-shrink-0"
+                             title="Hủy nối"
+                          >✕</span>
+                        </div>
+                      ) : r.content}
+                    </button>
+                  )
+               })}
+             </div>
+          </div>
+        )}
+
+        {/* 4. SẮP XẾP TỪ */}
 
           {/* 4. SẮP XẾP TỪ */}
           {currentQuestion.questionType === "WORD_ORDER" && (
@@ -392,11 +390,52 @@ export default function QuizEngineClient({ quiz }: { quiz: any }) {
                <div className="text-center">
                  <button onClick={() => setAnswer("[]")} className="text-sm text-red-500 hover:underline">Xóa làm lại</button>
                </div>
-            </div>
+              </div>
           )}
-
         </div>
+    </>
+  );
+
+  return (
+    <div className={`max-w-full ${isReadingSplit ? 'mx-0' : 'max-w-3xl mx-auto'}`}>
+      {/* Header Bar */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between mb-6 sticky top-4 z-10">
+        <div className="font-bold text-gray-800">
+          Câu {currentIndex + 1} / {questions.length}
+        </div>
+        
+        {timeLeft !== null && (
+          <div className={`font-mono text-lg font-bold px-4 py-1.5 rounded-lg ${timeLeft < 60 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-brand-teal/10 text-brand-teal'}`}>
+            {formatTime(timeLeft)}
+          </div>
+        )}
+
+        <button
+          onClick={() => {
+            if(confirm("Bạn có chắc chắn muốn nộp bài sớm?")) handleSubmit();
+          }}
+          className="text-brand-coral font-bold text-sm hover:underline"
+        >
+          Nộp bài
+        </button>
       </div>
+
+      {/* Render Layout */}
+      {isReadingSplit ? (
+        <div className="flex flex-col md:flex-row gap-6 mb-6">
+          <div className="w-full md:w-1/2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[400px] max-h-[70vh] overflow-y-auto custom-scrollbar">
+             <div className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Nội dung bài đọc</div>
+             <div className="text-gray-800 leading-relaxed text-lg whitespace-pre-wrap">{readingText}</div>
+          </div>
+          <div className="w-full md:w-1/2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[400px] max-h-[70vh] overflow-y-auto">
+             {renderQuestionBody()}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 mb-6 min-h-[400px]">
+          {renderQuestionBody()}
+        </div>
+      )}
 
       {/* Navigation Footer */}
       <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-100">

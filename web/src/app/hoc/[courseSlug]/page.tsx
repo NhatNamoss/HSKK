@@ -5,6 +5,7 @@ import { Metadata } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import LessonCompleteButton from "./LessonCompleteButton";
+import QuizEngineClient from "@/app/luyen-tap/[quizId]/QuizEngineClient";
 
 export async function generateMetadata({ params }: { params: { courseSlug: string } }): Promise<Metadata> {
   const { courseSlug } = await params;
@@ -30,7 +31,19 @@ export default async function LearningPage({
     include: {
       sections: {
         include: {
-          lessons: { orderBy: { orderIndex: 'asc' } }
+          lessons: { 
+            orderBy: { orderIndex: 'asc' },
+            include: {
+              quiz: {
+                include: {
+                  questions: {
+                    include: { choices: { orderBy: { orderIndex: 'asc' } } },
+                    orderBy: { orderIndex: 'asc' }
+                  }
+                }
+              }
+            }
+          }
         },
         orderBy: { orderIndex: 'asc' }
       }
@@ -214,17 +227,13 @@ export default async function LearningPage({
                   )}
                 </div>
               ) : currentLesson.lessonType === "QUIZ" ? (
-                <div className="text-center p-8 flex flex-col items-center justify-center w-full h-full min-h-[300px] bg-gray-900 border border-gray-800 rounded-xl">
-                  <div className="w-20 h-20 bg-brand-teal/20 rounded-full flex items-center justify-center mb-6">
-                    <svg className="w-10 h-10 text-brand-teal" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
-                  </div>
-                  <p className="text-xl text-gray-300 font-bold mb-6">📋 Bài tập trắc nghiệm / Bài kiểm tra</p>
-                  {currentLesson.quizId ? (
-                    <Link href={`/luyen-tap/${currentLesson.quizId}`} target="_blank" className="px-8 py-3 bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-xl shadow-lg transition-transform hover:scale-105">
-                      Bắt đầu làm bài
-                    </Link>
+                <div className="w-full h-full bg-gray-50 flex-1 overflow-y-auto">
+                  {currentLesson.quiz ? (
+                    <QuizEngineClient quiz={currentLesson.quiz} />
                   ) : (
-                    <p className="text-gray-500">Bài kiểm tra đang được cập nhật</p>
+                    <div className="text-center p-8 bg-gray-900 border border-gray-800 rounded-xl m-8">
+                       <p className="text-gray-500">Bài kiểm tra đang được cập nhật</p>
+                    </div>
                   )}
                 </div>
               ) : (
@@ -245,7 +254,7 @@ export default async function LearningPage({
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  {session?.user && (
+                  {session?.user && currentLesson.lessonType !== "QUIZ" && (
                     <LessonCompleteButton 
                       lessonId={currentLesson.id}
                       courseSlug={course.slug}
