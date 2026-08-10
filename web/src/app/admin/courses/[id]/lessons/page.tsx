@@ -20,12 +20,18 @@ export default async function CourseLessonsPage({
       sections: {
         include: {
           lessons: {
-            orderBy: { orderIndex: 'asc' }
+            orderBy: { orderIndex: 'asc' },
+            include: { quiz: true }
           }
         },
         orderBy: { orderIndex: 'asc' }
       }
     }
+  });
+
+  const quizzes = await prisma.quiz.findMany({
+    select: { id: true, title: true, quizType: true },
+    orderBy: { createdAt: 'desc' }
   });
 
   if (!course) {
@@ -41,7 +47,7 @@ export default async function CourseLessonsPage({
         </div>
       </div>
 
-      <LessonClient course={course} />
+      <LessonClient course={course} quizzes={quizzes} />
     </div>
   );
 }

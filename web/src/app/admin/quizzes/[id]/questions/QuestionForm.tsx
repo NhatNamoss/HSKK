@@ -260,14 +260,14 @@ export default function QuestionForm({
 
         {questionType === "FILL_IN_BLANK" && (
           <div className="space-y-3">
-            <p className="text-xs text-gray-500 mb-2">Nhập các đáp án được chấp nhận (nếu có nhiều cách điền đúng, hãy thêm nhiều đáp án).</p>
+            <p className="text-xs text-gray-500 mb-2">Nhập đáp án cho từng ô trống theo đúng thứ tự xuất hiện trong câu. (Dùng dấu phẩy `,` nếu có nhiều đáp án chấp nhận được cho 1 ô).</p>
             {fibAnswers.map((ans, idx) => (
               <div key={idx} className="flex items-center gap-3">
                 <input
                   type="text"
                   value={ans}
                   onChange={(e) => setFibAnswers(fibAnswers.map((a, i) => (i === idx ? e.target.value : a)))}
-                  placeholder={`Đáp án đúng ${idx + 1}`}
+                  placeholder={`Đáp án ô trống thứ ${idx + 1}`}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-teal text-sm"
                 />
                 <button
@@ -284,7 +284,7 @@ export default function QuestionForm({
               onClick={() => setFibAnswers([...fibAnswers, ""])}
               className="text-sm text-brand-teal font-medium hover:underline"
             >
-              + Thêm đáp án thay thế
+              + Thêm đáp án cho ô trống tiếp theo
             </button>
           </div>
         )}

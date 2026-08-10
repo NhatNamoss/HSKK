@@ -213,12 +213,25 @@ export default async function LearningPage({
                     <p className="text-gray-400 text-sm">Tài liệu đang được cập nhật</p>
                   )}
                 </div>
+              ) : currentLesson.lessonType === "QUIZ" ? (
+                <div className="text-center p-8 flex flex-col items-center justify-center w-full h-full min-h-[300px] bg-gray-900 border border-gray-800 rounded-xl">
+                  <div className="w-20 h-20 bg-brand-teal/20 rounded-full flex items-center justify-center mb-6">
+                    <svg className="w-10 h-10 text-brand-teal" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
+                  </div>
+                  <p className="text-xl text-gray-300 font-bold mb-6">📋 Bài tập trắc nghiệm / Bài kiểm tra</p>
+                  {currentLesson.quizId ? (
+                    <Link href={`/luyen-tap/${currentLesson.quizId}`} target="_blank" className="px-8 py-3 bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-xl shadow-lg transition-transform hover:scale-105">
+                      Bắt đầu làm bài
+                    </Link>
+                  ) : (
+                    <p className="text-gray-500">Bài kiểm tra đang được cập nhật</p>
+                  )}
+                </div>
               ) : (
-                <div className="text-center p-8">
-                  <p className="text-xl text-gray-300 font-bold mb-4">📋 Bài tập trắc nghiệm</p>
-                  <button className="px-8 py-3 bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-xl shadow-lg">
-                    Bắt đầu làm bài
-                  </button>
+                <div className="p-8 w-full h-full min-h-[300px] bg-gray-900 text-gray-300">
+                   {currentLesson.content?.split('\n').map((line: string, i: number) => (
+                    <p key={i} className="mb-4">{line}</p>
+                   ))}
                 </div>
               )}
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { startAttempt, submitAttempt } from "@/app/actions/attempt";
@@ -25,9 +25,28 @@ export default function QuizEngineClient({ quiz }: { quiz: any }) {
   const [timeLeft, setTimeLeft] = useState<number | null>(quiz.timeLimit ? quiz.timeLimit * 60 : null);
   
   const [error, setError] = useState("");
+  const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
 
   const questions: SafeQuestion[] = quiz.questions;
   const currentQuestion = questions[currentIndex];
+
+  // Khởi tạo các mảng xáo trộn cho game MATCHING
+  const { leftCol, rightCol } = useMemo(() => {
+    if (!currentQuestion || currentQuestion.questionType !== "MATCHING") return { leftCol: [], rightCol: [] };
+    const lefts = currentQuestion.choices.filter(c => c.matchGroup === "left");
+    const rights = currentQuestion.choices.filter(c => c.matchGroup === "right");
+    
+    // Thuật toán xáo trộn Fisher-Yates
+    const shuffle = (array: any[]) => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+    return { leftCol: shuffle(lefts), rightCol: shuffle(rights) };
+  }, [currentQuestion]);
 
   // Timer logic
   useEffect(() => {
@@ -173,16 +192,34 @@ export default function QuizEngineClient({ quiz }: { quiz: any }) {
             }
           </span>
           <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-relaxed whitespace-pre-wrap">
-            {currentQuestion.question.split("___").map((part, i, arr) => (
-              <span key={i}>
-                {part}
-                {i < arr.length - 1 && (
-                  <span className="inline-block w-16 mx-1 border-b-2 border-brand-teal text-brand-teal text-center px-2">
-                    {currentQuestion.questionType === "FILL_IN_BLANK" && currentAnswer ? currentAnswer : "..."}
-                  </span>
-                )}
-              </span>
-            ))}
+            {currentQuestion.question.split("___").map((part, i, arr) => {
+              let parsedAnswers: string[] = [];
+              if (currentQuestion.questionType === "FILL_IN_BLANK") {
+                try { parsedAnswers = JSON.parse(currentAnswer || "[]"); } catch {}
+              }
+              
+              return (
+                <span key={i}>
+                  {part}
+                  {i < arr.length - 1 && (
+                    currentQuestion.questionType === "FILL_IN_BLANK" ? (
+                      <input 
+                        type="text"
+                        value={parsedAnswers[i] || ""}
+                        onChange={(e) => {
+                          const newAns = [...parsedAnswers];
+                          newAns[i] = e.target.value;
+                          setAnswer(JSON.stringify(newAns));
+                        }}
+                        className="inline-block w-32 mx-2 border-b-2 border-brand-teal text-brand-teal text-center focus:outline-none bg-brand-teal/5 font-bold"
+                      />
+                    ) : (
+                      <span className="inline-block w-16 mx-1 border-b-2 border-brand-teal text-brand-teal text-center px-2">...</span>
+                    )
+                  )}
+                </span>
+              );
+            })}
           </h2>
         </div>
 
@@ -221,24 +258,78 @@ export default function QuizEngineClient({ quiz }: { quiz: any }) {
             </div>
           )}
 
-          {/* 2. ĐIỀN TỪ */}
-          {currentQuestion.questionType === "FILL_IN_BLANK" && (
-            <div>
-              <input
-                type="text"
-                autoFocus
-                value={currentAnswer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Nhập đáp án của bạn..."
-                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-brand-teal focus:ring-0 text-lg"
-              />
-            </div>
-          )}
+          {/* 2. ĐIỀN TỪ - Đã xử lý inline trên tiêu đề */}
 
           {/* 3. NỐI ĐÔI */}
           {currentQuestion.questionType === "MATCHING" && (
-            <div className="text-gray-500 italic text-center p-8 bg-gray-50 rounded-xl">
-              [Dạng bài tập Nối đôi sẽ được cập nhật UI phức tạp hơn trong phiên bản tới. Tạm thời vui lòng chọn câu hỏi khác.]
+            <div className="grid grid-cols-2 gap-8 mt-4">
+               <div className="space-y-4">
+                 <h4 className="text-center font-bold text-gray-500 mb-4 uppercase text-sm">Cột trái</h4>
+                 {leftCol.map(l => {
+                    let pairs: any[] = [];
+                    try { pairs = JSON.parse(currentAnswer || "[]"); } catch {}
+                    const isMatched = pairs.some((p: any) => p.left === l.id);
+                    const isSelected = selectedLeft === l.id;
+
+                    return (
+                      <button
+                        key={l.id}
+                        disabled={isMatched}
+                        onClick={() => setSelectedLeft(isSelected ? null : l.id)}
+                        className={`w-full p-4 rounded-xl border-2 font-bold transition-all ${
+                          isMatched ? 'bg-gray-100 border-gray-200 text-gray-400 opacity-50 line-through' :
+                          isSelected ? 'bg-brand-teal/10 border-brand-teal text-brand-teal shadow-md transform scale-105' :
+                          'bg-white border-gray-200 hover:border-brand-teal text-gray-700 hover:shadow-sm'
+                        }`}
+                      >
+                        {l.content}
+                      </button>
+                    )
+                 })}
+               </div>
+               <div className="space-y-4">
+                 <h4 className="text-center font-bold text-gray-500 mb-4 uppercase text-sm">Cột phải</h4>
+                 {rightCol.map(r => {
+                    let pairs: any[] = [];
+                    try { pairs = JSON.parse(currentAnswer || "[]"); } catch {}
+                    const matchedPair = pairs.find((p: any) => p.right === r.id);
+                    const matchedLeft = matchedPair ? leftCol.find(l => l.id === matchedPair.left) : null;
+
+                    return (
+                      <button
+                        key={r.id}
+                        disabled={!!matchedPair}
+                        onClick={() => {
+                          if (!selectedLeft) return; // Must select left first
+                          const newPairs = [...pairs, { left: selectedLeft, right: r.id }];
+                          setAnswer(JSON.stringify(newPairs));
+                          setSelectedLeft(null);
+                        }}
+                        className={`w-full p-4 rounded-xl border-2 font-bold transition-all ${
+                          matchedPair ? 'bg-green-50 border-green-200 text-green-700' :
+                          selectedLeft ? 'bg-white border-brand-teal/50 hover:bg-brand-teal/5 cursor-pointer hover:shadow-md border-dashed' :
+                          'bg-white border-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        {matchedPair ? (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded line-clamp-1 max-w-[40%] mr-2" title={matchedLeft?.content}>{matchedLeft?.content}</span>
+                            <span className="flex-1 text-right">{r.content}</span>
+                            <span 
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 const newPairs = pairs.filter((p: any) => p.right !== r.id);
+                                 setAnswer(JSON.stringify(newPairs));
+                               }}
+                               className="ml-2 text-red-400 hover:text-red-600 cursor-pointer bg-white rounded-full w-6 h-6 flex items-center justify-center border border-red-200"
+                               title="Hủy nối"
+                            >✕</span>
+                          </div>
+                        ) : r.content}
+                      </button>
+                    )
+                 })}
+               </div>
             </div>
           )}
 

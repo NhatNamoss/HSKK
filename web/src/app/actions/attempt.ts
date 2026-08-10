@@ -87,11 +87,28 @@ export async function submitAttempt(
           break;
         }
         case "FILL_IN_BLANK": {
-          // answer = text typed by user
-          const correctChoices = question.choices
-            .filter((c) => c.isCorrect)
-            .map((c) => c.content.toLowerCase().trim());
-          isCorrect = correctChoices.includes(userAnswer.toLowerCase().trim());
+          try {
+            const userAnswers = JSON.parse(userAnswer) as string[];
+            const correctChoices = question.choices
+              .filter(c => c.isCorrect)
+              .sort((a,b) => a.orderIndex - b.orderIndex);
+            
+            if (userAnswers.length !== correctChoices.length) {
+              isCorrect = false;
+              break;
+            }
+
+            isCorrect = true;
+            for (let i = 0; i < correctChoices.length; i++) {
+               const acceptable = correctChoices[i].content.toLowerCase().split(',').map(s => s.trim());
+               if (!acceptable.includes(userAnswers[i].toLowerCase().trim())) {
+                  isCorrect = false;
+                  break;
+               }
+            }
+          } catch {
+            isCorrect = false;
+          }
           break;
         }
         case "MATCHING": {

@@ -103,6 +103,9 @@ export async function createLesson(formData: FormData) {
     const videoUrl = formData.get("videoUrl") as string;
     const content = formData.get("content") as string;
     const courseId = formData.get("courseId") as string;
+    
+    // Bỏ quizId truyền vào từ form vì chúng ta sẽ tự tạo
+    // const quizId = formData.get("quizId") as string;
 
     if (!title || !sectionId) {
       return { error: "Vui lòng nhập tên bài học" };
@@ -115,6 +118,20 @@ export async function createLesson(formData: FormData) {
     
     const nextOrder = lastLesson ? lastLesson.orderIndex + 1 : 0;
 
+    let finalQuizId = null;
+
+    // Nếu là dạng QUIZ, tự động tạo 1 Quiz ẩn gắn kèm với Lesson này
+    if (lessonType === "QUIZ") {
+      const newQuiz = await prisma.quiz.create({
+        data: {
+          title: `[Bài tập] ${title}`,
+          quizType: "EXERCISE",
+          status: "published"
+        }
+      });
+      finalQuizId = newQuiz.id;
+    }
+
     await prisma.lesson.create({
       data: {
         sectionId,
@@ -122,6 +139,7 @@ export async function createLesson(formData: FormData) {
         lessonType,
         videoUrl,
         content,
+        quizId: finalQuizId,
         orderIndex: nextOrder
       }
     });

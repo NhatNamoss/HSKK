@@ -9,6 +9,7 @@ type LessonProps = {
   title: string;
   lessonType: string;
   orderIndex: number;
+  quiz?: { id: string, title: string } | null;
 };
 
 type SectionProps = {
@@ -24,10 +25,17 @@ type CourseProps = {
   sections: SectionProps[];
 };
 
-export default function LessonClient({ course }: { course: CourseProps }) {
+type QuizProps = {
+  id: string;
+  title: string;
+  quizType: string;
+};
+
+export default function LessonClient({ course, quizzes }: { course: CourseProps, quizzes: QuizProps[] }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [activeLessonType, setActiveLessonType] = useState("VIDEO");
 
   const handleCreateSection = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,6 +73,7 @@ export default function LessonClient({ course }: { course: CourseProps }) {
     } else {
       (e.target as HTMLFormElement).reset();
       setActiveSectionId(null);
+      setActiveLessonType("VIDEO");
     }
     setLoading(false);
   };
@@ -86,7 +95,10 @@ export default function LessonClient({ course }: { course: CourseProps }) {
                   Chương {idx + 1}: {section.title}
                 </h3>
                 <button 
-                  onClick={() => setActiveSectionId(activeSectionId === section.id ? null : section.id)}
+                  onClick={() => {
+                    setActiveSectionId(activeSectionId === section.id ? null : section.id);
+                    setActiveLessonType("VIDEO");
+                  }}
                   className="text-sm font-medium text-brand-teal hover:text-brand-coral bg-white px-3 py-1.5 border border-gray-200 rounded-md shadow-sm"
                 >
                   + Thêm bài học
@@ -106,7 +118,20 @@ export default function LessonClient({ course }: { course: CourseProps }) {
                           {lesson.lessonType === "QUIZ" && <span className="bg-brand-earth/10 text-brand-earth p-2 rounded-lg text-xs font-bold block">QUIZ</span>}
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">Bài {lIdx + 1}: {lesson.title}</p>
+                          <p className="font-medium text-gray-900">
+                            Bài {lIdx + 1}: {lesson.title} 
+                          </p>
+                          {lesson.lessonType === "QUIZ" && lesson.quiz && (
+                             <div className="mt-2">
+                               <Link 
+                                  href={`/admin/courses/${course.id}/lessons/${lesson.id}/editor`}
+                                  className="inline-flex items-center px-3 py-1.5 bg-brand-teal/10 text-brand-teal text-xs font-bold rounded-lg hover:bg-brand-teal hover:text-white transition-colors"
+                               >
+                                 <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                 Soạn thảo bài tập
+                               </Link>
+                             </div>
+                          )}
                         </div>
                         <div>
                           <button className="text-gray-400 hover:text-red-500 text-sm font-medium">Xóa</button>
@@ -126,12 +151,25 @@ export default function LessonClient({ course }: { course: CourseProps }) {
                       <input name="title" type="text" required placeholder="Tên bài học..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <select name="lessonType" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                      <select 
+                        name="lessonType" 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        value={activeLessonType}
+                        onChange={(e) => setActiveLessonType(e.target.value)}
+                      >
                         <option value="VIDEO">Video</option>
                         <option value="PDF">Tài liệu PDF</option>
                         <option value="QUIZ">Trắc nghiệm</option>
+                        <option value="TEXT">Văn bản</option>
                       </select>
-                      <input name="videoUrl" type="text" placeholder="URL Video/Tài liệu (Vimeo/S3...)" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      
+                      {activeLessonType === "QUIZ" ? (
+                        <div className="text-sm text-gray-500 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                          Hệ thống sẽ tự động tạo bài tập cho bài học này. Bạn có thể soạn thảo nội dung sau khi lưu.
+                        </div>
+                      ) : (
+                        <input name="videoUrl" type="text" placeholder="URL Video/Tài liệu (Vimeo/S3...)" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      )}
                     </div>
                     <div>
                       <textarea name="content" rows={2} placeholder="Ghi chú bài học..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
