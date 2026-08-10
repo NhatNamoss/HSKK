@@ -10,6 +10,7 @@ export async function createDocument(formData: FormData) {
     const description = formData.get("description") as string;
     const filePath = formData.get("filePath") as string;
     const fileType = formData.get("fileType") as string;
+    const coverImage = formData.get("coverImage") as string;
 
     if (!title || !categoryId || !filePath || !fileType) {
       return { error: "Vui lòng nhập đầy đủ thông tin bắt buộc" };
@@ -21,7 +22,8 @@ export async function createDocument(formData: FormData) {
         categoryId,
         description,
         filePath,
-        fileType
+        fileType,
+        coverImage: coverImage || null,
       }
     });
 
@@ -31,6 +33,40 @@ export async function createDocument(formData: FormData) {
   } catch (error) {
     console.error("Error creating document:", error);
     return { error: "Đã xảy ra lỗi khi thêm tài liệu" };
+  }
+}
+
+export async function updateDocument(id: string, formData: FormData) {
+  try {
+    const title = formData.get("title") as string;
+    const categoryId = formData.get("categoryId") as string;
+    const description = formData.get("description") as string;
+    const filePath = formData.get("filePath") as string;
+    const fileType = formData.get("fileType") as string;
+    const coverImage = formData.get("coverImage") as string;
+
+    if (!title || !categoryId || !filePath || !fileType) {
+      return { error: "Vui lòng nhập đầy đủ thông tin bắt buộc" };
+    }
+
+    await prisma.document.update({
+      where: { id },
+      data: {
+        title,
+        categoryId,
+        description,
+        filePath,
+        fileType,
+        coverImage: coverImage || null,
+      }
+    });
+
+    revalidatePath("/admin/documents");
+    revalidatePath("/thu-vien");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating document:", error);
+    return { error: "Đã xảy ra lỗi khi cập nhật tài liệu" };
   }
 }
 

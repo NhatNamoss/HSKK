@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   description: "Nền tảng học tiếng Trung trực tuyến hàng đầu. Khóa học và tài liệu chất lượng cao giúp bạn chinh phục HSK và HSKK dễ dàng hơn.",
 };
 
-// Server action cho tìm kiếm ở trang chủ
 async function handleSearch(formData: FormData) {
   "use server";
   const q = formData.get("q") as string;
@@ -18,21 +17,17 @@ async function handleSearch(formData: FormData) {
 }
 
 export default async function Home() {
-  // Lấy khóa học nổi bật từ DB (featured courses)
-  const featuredCourses = await prisma.course.findMany({
-    where: { status: "published" },
-    include: {
-      _count: { select: { enrollments: true, sections: true } }
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 4,
-  });
-
-  // Thống kê nhanh
-  const [totalStudents, totalCourses, totalDocuments] = await Promise.all([
+  const [featuredCourses, totalStudents, totalCourses, totalDocuments, libraryCategories] = await Promise.all([
+    prisma.course.findMany({
+      where: { status: "published" },
+      include: { _count: { select: { enrollments: true, sections: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 4,
+    }),
     prisma.user.count({ where: { role: "USER" } }),
     prisma.course.count({ where: { status: "published" } }),
-    prisma.document.count()
+    prisma.document.count(),
+    prisma.category.findMany({ orderBy: { name: 'asc' }, take: 10 }),
   ]);
 
   return (
@@ -112,15 +107,27 @@ export default async function Home() {
           </div>
 
           <div className="flex flex-wrap gap-4">
-            {['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6', 'HSKK', 'Giao tiếp', 'Ngữ pháp', 'Luyện nghe'].map((cat) => (
-              <Link
-                key={cat}
-                href={`/thu-vien?category=${encodeURIComponent(cat.toLowerCase().replace(/ /g, '-'))}`}
-                className="px-6 py-3 bg-brand-cream/50 text-gray-800 rounded-xl font-medium border border-brand-earth/20 hover:border-brand-coral hover:bg-brand-coral hover:text-white transition-all duration-300 shadow-sm"
-              >
-                {cat}
-              </Link>
-            ))}
+            {libraryCategories.length > 0 ? (
+              libraryCategories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  href={`/thu-vien?category=${cat.slug}`}
+                  className="px-6 py-3 bg-brand-cream/50 text-gray-800 rounded-xl font-medium border border-brand-earth/20 hover:border-brand-coral hover:bg-brand-coral hover:text-white transition-all duration-300 shadow-sm"
+                >
+                  {cat.name}
+                </Link>
+              ))
+            ) : (
+              ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSKK', 'Giao tiếp', 'Ngữ pháp'].map((cat) => (
+                <Link
+                  key={cat}
+                  href={`/thu-vien?category=${encodeURIComponent(cat.toLowerCase().replace(/ /g, '-'))}`}
+                  className="px-6 py-3 bg-brand-cream/50 text-gray-800 rounded-xl font-medium border border-brand-earth/20 hover:border-brand-coral hover:bg-brand-coral hover:text-white transition-all duration-300 shadow-sm"
+                >
+                  {cat}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>
