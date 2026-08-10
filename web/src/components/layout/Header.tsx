@@ -13,6 +13,7 @@ export default function Header() {
   const navLinks = [
     { href: '/thu-vien', label: 'Thư viện' },
     { href: '/khoa-hoc', label: 'Khóa học' },
+    { href: '/luyen-tap', label: 'Luyện tập' },
     { href: '/bai-viet', label: 'Bài viết' },
   ];
 

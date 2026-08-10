@@ -15,7 +15,7 @@ export default async function ProfilePage() {
 
   const userId = session.user.id;
 
-  const [enrollments, orders] = await Promise.all([
+  const [enrollments, orders, attempts] = await Promise.all([
     prisma.enrollment.findMany({
       where: { userId },
       include: {
@@ -33,11 +33,17 @@ export default async function ProfilePage() {
         items: { include: { course: { select: { title: true, slug: true } } } }
       },
       orderBy: { createdAt: 'desc' }
+    }),
+    prisma.quizAttempt.findMany({
+      where: { userId, status: "COMPLETED" },
+      include: { quiz: { select: { id: true, title: true, quizType: true } } },
+      orderBy: { finishedAt: 'desc' },
+      take: 10
     })
   ]);
 
-  const completedOrders = orders.filter(o => o.status === "COMPLETED").length;
-  const pendingOrders = orders.filter(o => o.status === "PENDING").length;
+  const completedOrders = orders.filter((o: any) => o.status === "COMPLETED").length;
+  const pendingOrders = orders.filter((o: any) => o.status === "PENDING").length;
 
   return (
     <div className="bg-gray-50 min-h-screen py-12">
@@ -82,7 +88,7 @@ export default async function ProfilePage() {
 
               {enrollments.length > 0 ? (
                 <div className="space-y-4">
-                  {enrollments.map(enr => {
+                  {enrollments.map((enr: any) => {
                     const progressPct = Math.round(enr.progress || 0);
                     return (
                       <div key={enr.id} className="border border-gray-100 rounded-xl p-5 hover:border-brand-teal/30 transition-colors group">
@@ -158,7 +164,7 @@ export default async function ProfilePage() {
 
               {orders.length > 0 ? (
                 <div className="space-y-3">
-                  {orders.map(order => (
+                  {orders.map((order: any) => (
                     <div key={order.id} className="border border-gray-100 rounded-xl p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start gap-2 mb-2">
                         <p className="font-bold text-gray-900 text-sm line-clamp-1">
@@ -191,6 +197,48 @@ export default async function ProfilePage() {
                   <p>Chưa có giao dịch nào.</p>
                   <Link href="/khoa-hoc" className="mt-3 inline-block text-brand-teal font-medium hover:underline text-xs">
                     Mua khóa học ngay →
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Lịch sử làm bài */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mt-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <svg className="w-6 h-6 text-brand-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Lịch sử luyện tập
+              </h2>
+
+              {attempts.length > 0 ? (
+                <div className="space-y-3">
+                  {attempts.map((attempt: any) => (
+                    <div key={attempt.id} className="border border-gray-100 rounded-xl p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <p className="font-bold text-gray-900 text-sm line-clamp-1">
+                          {attempt.quiz.title}
+                        </p>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                          (attempt.score || 0) >= 80 ? 'bg-green-100 text-green-700' :
+                          (attempt.score || 0) >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {attempt.score}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-gray-500">
+                        <span>{new Date(attempt.finishedAt!).toLocaleDateString('vi-VN')}</span>
+                        <Link href={`/luyen-tap/${attempt.quiz.id}/ket-qua/${attempt.id}`} className="text-brand-teal font-medium hover:underline">
+                          Xem chi tiết →
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 text-gray-400 text-sm">
+                  <p>Chưa có lịch sử làm bài.</p>
+                  <Link href="/luyen-tap" className="mt-3 inline-block text-brand-teal font-medium hover:underline text-xs">
+                    Vào luyện tập ngay →
                   </Link>
                 </div>
               )}

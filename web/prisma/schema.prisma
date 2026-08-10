@@ -10,12 +10,6 @@ datasource db {
 }
 
 // ----------------------------------------------------------------
-// ENUMS
-// ----------------------------------------------------------------
-
-// ENUMS REMOVED FOR SQLITE COMPATIBILITY
-
-// ----------------------------------------------------------------
 // MODELS
 // ----------------------------------------------------------------
 
@@ -32,6 +26,7 @@ model User {
   orders        Order[]
   progress      LessonProgress[]
   reviews       Review[]
+  quizAttempts  QuizAttempt[]
 }
 
 model Category {
@@ -42,6 +37,7 @@ model Category {
   parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryToCategory")
   documents   Document[]
+  quizzes     Quiz[]
 }
 
 model Tag {
@@ -103,12 +99,14 @@ model Lesson {
   content     String?    // Text or rich text content
   videoUrl    String?
   duration    Int?       // in seconds
-  lessonType  String    @default("VIDEO")
+  lessonType  String    @default("VIDEO") // VIDEO | PDF | QUIZ | TEXT
   isPreview   Boolean    @default(false)
   orderIndex  Int        @default(0)
+  quizId      String?    // Link to Quiz if lessonType = QUIZ
 
   section     CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   progress    LessonProgress[]
+  quiz        Quiz?      @relation(fields: [quizId], references: [id])
 }
 
 model Enrollment {
@@ -172,4 +170,88 @@ model Review {
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------------------
+// QUIZ / INTERACTIVE LEARNING SYSTEM
+// ----------------------------------------------------------------
+
+model Quiz {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  level       String?   // HSK 1, HSK 2, HSK 3...
+  quizType    String    @default("EXERCISE") // EXERCISE | MOCK_EXAM
+  timeLimit   Int?      // Minutes, null = no limit
+  status      String    @default("draft") // draft | published
+  categoryId  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  questions   Question[]
+  attempts    QuizAttempt[]
+  category    Category? @relation(fields: [categoryId], references: [id])
+  lessons     Lesson[]
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  quizId        String
+  questionType  String   // MULTIPLE_CHOICE | FILL_IN_BLANK | MATCHING | WORD_ORDER | TONE_RECOGNITION
+  question      String   // Question text (supports plain text with ___ for blanks)
+  explanation   String?  // Explanation shown after answering
+  audioUrl      String?  // Audio URL for listening/tone exercises
+  imageUrl      String?  // Illustration image
+  orderIndex    Int      @default(0)
+  points        Int      @default(1)
+
+  // For FILL_IN_BLANK: correct answers stored in choices with isCorrect=true
+  // For MATCHING: pairs stored as choices with orderIndex for left/right grouping
+  // For WORD_ORDER: correct order stored as explanation; shuffled words as choices
+  // For TONE_RECOGNITION: correct tone stored as choice with isCorrect=true
+
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  choices       QuestionChoice[]
+  userAnswers   UserAnswer[]
+}
+
+model QuestionChoice {
+  id          String   @id @default(cuid())
+  questionId  String
+  content     String   // Choice text / word / match pair part
+  isCorrect   Boolean  @default(false)
+  matchGroup  String?  // For MATCHING: "left" or "right"
+  orderIndex  Int      @default(0)
+
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model QuizAttempt {
+  id           String    @id @default(cuid())
+  userId       String
+  quizId       String
+  score        Float?    // 0-100 percentage
+  totalPoints  Int       @default(0)
+  earnedPoints Int       @default(0)
+  status       String    @default("IN_PROGRESS") // IN_PROGRESS | COMPLETED
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  timeSpent    Int?      // Seconds
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz         Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers      UserAnswer[]
+}
+
+model UserAnswer {
+  id          String   @id @default(cuid())
+  attemptId   String
+  questionId  String
+  answer      String   // JSON for matching/word_order, plain text for fill_in_blank, choice id for MCQ
+  isCorrect   Boolean  @default(false)
+
+  attempt     QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question    Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
 }
