@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard - Hán Ngữ Natra",
+  title: "Admin Dashboard - Học tiếng cùng cô Mỹ - Hán ngữ Natra",
 };
 
 export default async function AdminDashboard() {

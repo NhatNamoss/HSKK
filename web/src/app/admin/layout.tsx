@@ -32,7 +32,8 @@ export default function AdminLayout({
     { name: "Quản lý Tài liệu", path: "/admin/documents", icon: "📚" },
     { name: "Danh mục & Thẻ", path: "/admin/categories", icon: "🏷️" },
     { name: "Quản lý Khóa học", path: "/admin/courses", icon: "🎓" },
-    { name: "Quản lý Luyện tập", path: "/admin/quizzes", icon: "📝" },
+    { name: "Bài Luyện Tập", path: "/admin/practices", icon: "🎯" },
+    { name: "Đề thi thử", path: "/admin/quizzes", icon: "📝" },
     { name: "Người dùng", path: "/admin/users", icon: "👥" },
     { name: "Đơn hàng", path: "/admin/orders", icon: "🛒" },
   ];
@@ -43,7 +44,7 @@ export default function AdminLayout({
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
         <div className="h-16 flex items-center justify-center border-b border-gray-200">
           <Link href="/" className="text-xl font-bold text-brand-coral">
-            Hán Ngữ Natra <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded ml-1">ADMIN</span>
+            Học tiếng cùng cô Mỹ - Hán ngữ Natra <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded ml-1">ADMIN</span>
           </Link>
         </div>
         

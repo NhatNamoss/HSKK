@@ -14,6 +14,7 @@ export default function Header() {
     { href: '/thu-vien', label: 'Thư viện' },
     { href: '/khoa-hoc', label: 'Khóa học' },
     { href: '/luyen-tap', label: 'Luyện tập' },
+    { href: '/thi-thu', label: 'Thi thử' },
     { href: '/bai-viet', label: 'Bài viết' },
   ];
 
@@ -27,7 +28,7 @@ export default function Header() {
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="text-xl md:text-2xl font-bold text-brand-coral tracking-tight">
-              Hán Ngữ Natra
+              Học tiếng cùng cô Mỹ - Hán ngữ Natra
             </Link>
           </div>
 

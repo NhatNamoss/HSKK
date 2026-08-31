@@ -6,19 +6,19 @@ import { authOptions } from "@/lib/auth";
 import Link from "next/link";
 import QuizEngineClient from "./QuizEngineClient";
 
-export async function generateMetadata({ params }: { params: { quizId: string } }): Promise<Metadata> {
-  const { quizId } = await params;
-  const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const { id } = await params;
+  const quiz = await prisma.quiz.findUnique({ where: { id } });
   if (!quiz) return { title: "Không tìm thấy bài luyện tập" };
   return { title: `${quiz.title} - Luyện Tập` };
 }
 
-export default async function QuizDetailPage({ params }: { params: { quizId: string } }) {
-  const { quizId } = await params;
+export default async function QuizDetailPage({ params }: { params: { id: string } }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
 
   const quiz = await prisma.quiz.findUnique({
-    where: { id: quizId },
+    where: { id },
     include: {
       questions: {
         include: { choices: { orderBy: { orderIndex: "asc" } } },
@@ -54,7 +54,7 @@ export default async function QuizDetailPage({ params }: { params: { quizId: str
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Yêu cầu đăng nhập</h2>
           <p className="text-gray-600 mb-6">Bạn cần đăng nhập để làm bài tập và lưu lại kết quả học tập của mình.</p>
-          <Link href={`/login?callbackUrl=/luyen-tap/${quiz.id}`} className="block w-full bg-brand-teal text-white font-bold py-3 rounded-xl hover:bg-opacity-90">
+          <Link href={`/login?callbackUrl=/luyen-tap/bai-tap/${quiz.id}`} className="block w-full bg-brand-teal text-white font-bold py-3 rounded-xl hover:bg-opacity-90">
             Đăng nhập ngay
           </Link>
           <Link href="/luyen-tap" className="block w-full text-gray-500 font-medium py-3 mt-2 hover:text-gray-700">

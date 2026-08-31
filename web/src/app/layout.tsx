@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hán Ngữ Natra - Học tiếng Trung cùng cô Mỹ",
+  title: "Học tiếng cùng cô Mỹ - Hán ngữ Natra",
   description: "Hệ thống thư viện và khóa học tiếng Trung trực tuyến",
 };
 

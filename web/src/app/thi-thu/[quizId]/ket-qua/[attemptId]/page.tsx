@@ -74,10 +74,10 @@ export default async function QuizResultPage({ params }: { params: { quizId: str
           </div>
 
           <div className="flex gap-4 justify-center">
-             <Link href={`/luyen-tap/${attempt.quizId}`} className="px-6 py-2.5 bg-brand-teal text-white font-bold rounded-xl hover:bg-opacity-90">
+             <Link href={`/thi-thu/${attempt.quizId}`} className="px-6 py-2.5 bg-brand-teal text-white font-bold rounded-xl hover:bg-opacity-90">
                Làm lại
              </Link>
-             <Link href="/luyen-tap" className="px-6 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200">
+             <Link href="/thi-thu" className="px-6 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200">
                Trở về danh sách
              </Link>
           </div>

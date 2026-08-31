@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Tài khoản cá nhân - Hán Ngữ Natra",
+  title: "Tài khoản cá nhân - Học tiếng cùng cô Mỹ - Hán ngữ Natra",
 };
 
 export default async function ProfilePage() {
@@ -227,7 +227,7 @@ export default async function ProfilePage() {
                       </div>
                       <div className="flex justify-between items-center text-xs text-gray-500">
                         <span>{new Date(attempt.finishedAt!).toLocaleDateString('vi-VN')}</span>
-                        <Link href={`/luyen-tap/${attempt.quiz.id}/ket-qua/${attempt.id}`} className="text-brand-teal font-medium hover:underline">
+                        <Link href={attempt.quiz.quizType === 'MOCK_EXAM' ? `/thi-thu/${attempt.quiz.id}/ket-qua/${attempt.id}` : `/luyen-tap/bai-tap/${attempt.quiz.id}/ket-qua/${attempt.id}`} className="text-brand-teal font-medium hover:underline">
                           Xem chi tiết →
                         </Link>
                       </div>

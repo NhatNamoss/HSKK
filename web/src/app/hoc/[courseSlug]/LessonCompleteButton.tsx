@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { markLessonComplete } from "@/app/actions/progress";
 
 export default function LessonCompleteButton({ 
@@ -14,6 +15,7 @@ export default function LessonCompleteButton({
 }) {
   const [completed, setCompleted] = useState(initialCompleted);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleMark = async () => {
     if (completed) return;
@@ -22,6 +24,7 @@ export default function LessonCompleteButton({
     setLoading(false);
     if (res?.success) {
       setCompleted(true);
+      router.refresh();
     } else if (res?.error) {
       alert(res.error);
     }

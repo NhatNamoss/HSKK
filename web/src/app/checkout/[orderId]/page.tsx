@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Thanh toán khóa học - Hán Ngữ Natra",
+  title: "Thanh toán khóa học - Học tiếng cùng cô Mỹ - Hán ngữ Natra",
 };
 
 export default async function CheckoutPage({

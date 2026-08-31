@@ -38,6 +38,7 @@ model Category {
   children    Category[] @relation("CategoryToCategory")
   documents   Document[]
   quizzes     Quiz[]
+  practices   Practice[]
 }
 
 model Tag {
@@ -99,7 +100,7 @@ model Lesson {
   content     String?    // Text or rich text content
   videoUrl    String?
   duration    Int?       // in seconds
-  lessonType  String    @default("VIDEO") // VIDEO | PDF | QUIZ | TEXT
+  lessonType  String    @default("VIDEO") // VIDEO | PDF | QUIZ | TEXT | INTERACTIVE
   isPreview   Boolean    @default(false)
   orderIndex  Int        @default(0)
   quizId      String?    // Link to Quiz if lessonType = QUIZ
@@ -254,4 +255,24 @@ model UserAnswer {
   question    Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
+}
+
+// ----------------------------------------------------------------
+// PRACTICE SYSTEM (Standalone 6-tab exercises)
+// ----------------------------------------------------------------
+
+model Practice {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  thumbnail   String?
+  level       String?
+  status      String   @default("draft") // draft | published
+  content     String?  // JSON with flashcards, sentences, situations, dialogues, games, writeTranslate
+  categoryId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category    Category? @relation(fields: [categoryId], references: [id])
 }

@@ -206,7 +206,8 @@ export async function submitAttempt(
       }
     }
 
-    revalidatePath(`/luyen-tap/${attempt.quizId}/ket-qua/${attemptId}`);
+    revalidatePath(`/luyen-tap/bai-tap/${attempt.quizId}/ket-qua/${attemptId}`);
+    revalidatePath(`/thi-thu/${attempt.quizId}/ket-qua/${attemptId}`);
     revalidatePath("/ca-nhan");
     return { success: true, score, earnedPoints, totalPoints };
   } catch (error) {

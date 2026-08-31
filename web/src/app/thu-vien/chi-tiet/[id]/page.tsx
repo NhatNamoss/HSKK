@@ -8,8 +8,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const document = await prisma.document.findUnique({ where: { id } });
   if (!document) return { title: "Không tìm thấy tài liệu" };
   return {
-    title: `${document.title} - Thư Viện Hán Ngữ Natra`,
-    description: document.description || "Tài liệu học tiếng Trung miễn phí từ Hán Ngữ Natra.",
+    title: `${document.title} - Thư Viện Học tiếng cùng cô Mỹ - Hán ngữ Natra`,
+    description: document.description || "Tài liệu học tiếng Trung miễn phí từ Học tiếng cùng cô Mỹ - Hán ngữ Natra.",
   };
 }
 
@@ -141,7 +141,7 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
                 </div>
 
                 <p className="text-xs text-gray-400 mt-3">
-                  🔓 Tài liệu này được cung cấp miễn phí bởi Hán Ngữ Natra.
+                  🔓 Tài liệu này được cung cấp miễn phí bởi Học tiếng cùng cô Mỹ - Hán ngữ Natra.
                 </p>
               </div>
             </div>

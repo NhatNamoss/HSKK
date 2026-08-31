@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Khóa học tiếng Trung - Hán Ngữ Natra",
+  title: "Khóa học tiếng Trung - Học tiếng cùng cô Mỹ - Hán ngữ Natra",
   description: "Các khóa học tiếng Trung trực tuyến chất lượng cao từ cơ bản đến nâng cao.",
 };
 

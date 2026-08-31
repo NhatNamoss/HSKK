@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Hán Ngữ Natra - Học Tiếng Trung Cùng Cô Mỹ",
+  title: "Học tiếng cùng cô Mỹ - Hán ngữ Natra",
   description: "Nền tảng học tiếng Trung trực tuyến hàng đầu. Khóa học và tài liệu chất lượng cao giúp bạn chinh phục HSK và HSKK dễ dàng hơn.",
 };
 
@@ -54,7 +54,7 @@ export default async function Home() {
             </span>
           </h1>
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Hệ thống tài liệu và khóa học bài bản từ Hán Ngữ Natra, giúp bạn chinh phục HSK và HSKK một cách toàn diện.
+            Hệ thống tài liệu và khóa học bài bản từ Học tiếng cùng cô Mỹ - Hán ngữ Natra, giúp bạn chinh phục HSK và HSKK một cách toàn diện.
           </p>
 
           {/* Functional Search Form */}
@@ -209,7 +209,7 @@ export default async function Home() {
       <section className="py-20 bg-brand-cream border-t border-brand-earth/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Tại sao chọn Hán Ngữ Natra?</h2>
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Tại sao chọn Học tiếng cùng cô Mỹ - Hán ngữ Natra?</h2>
             <p className="text-gray-600 max-w-xl mx-auto">Phương pháp giảng dạy độc quyền, giáo trình chuẩn hóa quốc tế.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

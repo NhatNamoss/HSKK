@@ -151,3 +151,57 @@ export async function createLesson(formData: FormData) {
     return { error: "Đã xảy ra lỗi khi tạo bài học" };
   }
 }
+
+export async function updateLessonContent(lessonId: string, content: string) {
+  try {
+    const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+    if (!lesson) return { error: "Không tìm thấy bài học" };
+    
+    await prisma.lesson.update({
+      where: { id: lessonId },
+      data: { content }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating lesson content:", error);
+    return { error: "Đã xảy ra lỗi khi lưu bài học" };
+  }
+}
+
+export async function updateLesson(formData: FormData) {
+  try {
+    const id = formData.get("id") as string;
+    const title = formData.get("title") as string;
+    const videoUrl = formData.get("videoUrl") as string;
+    const courseId = formData.get("courseId") as string;
+
+    if (!id || !title) {
+      return { error: "Thiếu thông tin bài học" };
+    }
+
+    await prisma.lesson.update({
+      where: { id },
+      data: {
+        title,
+        videoUrl: videoUrl || null,
+      }
+    });
+
+    revalidatePath(`/admin/courses/${courseId}/lessons`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating lesson:", error);
+    return { error: "Lỗi cập nhật bài học" };
+  }
+}
+
+export async function deleteLesson(id: string, courseId: string) {
+  try {
+    await prisma.lesson.delete({ where: { id } });
+    revalidatePath(`/admin/courses/${courseId}/lessons`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting lesson:", error);
+    return { error: "Lỗi xóa bài học" };
+  }
+}

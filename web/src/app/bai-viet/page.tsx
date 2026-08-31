@@ -2,8 +2,8 @@ import { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Bài viết - Kiến thức tiếng Trung | Hán Ngữ Natra",
-  description: "Cẩm nang học tiếng Trung, mẹo làm bài thi HSK, ngữ pháp và từ vựng thú vị từ Hán Ngữ Natra.",
+  title: "Bài viết - Kiến thức tiếng Trung | Học tiếng cùng cô Mỹ - Hán ngữ Natra",
+  description: "Cẩm nang học tiếng Trung, mẹo làm bài thi HSK, ngữ pháp và từ vựng thú vị từ Học tiếng cùng cô Mỹ - Hán ngữ Natra.",
 };
 
 const samplePosts = [
@@ -55,7 +55,7 @@ const samplePosts = [
   {
     id: "6",
     title: "Kinh nghiệm thi đỗ HSK 4 trong 6 tháng tự học",
-    summary: "Chia sẻ lộ trình học tập chi tiết, nguồn tài liệu và cách ôn thi hiệu quả giúp một học viên của Hán Ngữ Natra đạt HSK 4 chỉ sau 6 tháng.",
+    summary: "Chia sẻ lộ trình học tập chi tiết, nguồn tài liệu và cách ôn thi hiệu quả giúp một học viên của Học tiếng cùng cô Mỹ - Hán ngữ Natra đạt HSK 4 chỉ sau 6 tháng.",
     category: "Kinh nghiệm",
     readTime: 15,
     date: "2024-06-28",
@@ -82,7 +82,7 @@ export default function BlogPage() {
             Kiến thức tiếng Trung
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Chia sẻ kiến thức, mẹo học và kinh nghiệm thực chiến từ đội ngũ giáo viên Hán Ngữ Natra.
+            Chia sẻ kiến thức, mẹo học và kinh nghiệm thực chiến từ đội ngũ giáo viên Học tiếng cùng cô Mỹ - Hán ngữ Natra.
           </p>
         </div>
 

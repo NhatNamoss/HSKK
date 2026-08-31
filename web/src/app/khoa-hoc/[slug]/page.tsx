@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 
   return {
-    title: `${course.title} - Hán Ngữ Natra`,
+    title: `${course.title} - Học tiếng cùng cô Mỹ - Hán ngữ Natra`,
     description: course.description || "Khóa học tiếng Trung chất lượng cao.",
   };
 }

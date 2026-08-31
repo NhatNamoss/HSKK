@@ -95,7 +95,7 @@ export default function QuizEngineClient({ quiz }: { quiz: any }) {
       if (typeof window !== "undefined" && window.location.pathname.includes("/hoc/")) {
         window.location.reload();
       } else {
-        router.push(`/luyen-tap/${quiz.id}/ket-qua/${attemptId}`);
+        router.push(`/thi-thu/${quiz.id}/ket-qua/${attemptId}`);
       }
     }
   };
