@@ -396,8 +396,8 @@ function SituationalQA({ situations }: { situations: any[] }) {
     );
 }
 
-// 5. Comprehensive Challenge (Multiple Choice from Flashcards)
-function MCQChallenge({ flashcards }: { flashcards: any[] }) {
+// 5. Comprehensive Challenge (Multiple Choice)
+function MCQChallenge({ mcqs, flashcardsFallback }: { mcqs: any[], flashcardsFallback: any[] }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [options, setOptions] = useState<any[]>([]);
     const [selectedId, setSelectedId] = useState<string|null>(null);
@@ -405,24 +405,41 @@ function MCQChallenge({ flashcards }: { flashcards: any[] }) {
     const [score, setScore] = useState(0);
     const [isFinished, setIsFinished] = useState(false);
 
+    // Use mcqs if available, else fallback to auto-generating from flashcards
+    const items = mcqs && mcqs.length > 0 ? mcqs : flashcardsFallback;
+
     useEffect(() => {
-        if (!flashcards || flashcards.length < 4) return;
-        const current = flashcards[currentIndex];
-        const others = flashcards.filter(f => f.id !== current.id).sort(() => Math.random() - 0.5).slice(0, 3);
-        const opts = [current, ...others].sort(() => Math.random() - 0.5);
+        if (!items || items.length === 0) return;
+        const current = items[currentIndex];
+        
+        let opts = [];
+        if (mcqs && mcqs.length > 0 && current.optionA) {
+            // Use explicit options
+            opts = [
+                { id: current.id, text: current.translation, isCorrect: true },
+                { id: "A", text: current.optionA, isCorrect: false },
+                { id: "B", text: current.optionB, isCorrect: false },
+                { id: "C", text: current.optionC, isCorrect: false }
+            ].filter(o => o.text).sort(() => Math.random() - 0.5);
+        } else {
+            // Auto generate from items
+            const others = items.filter((f:any) => f.id !== current.id).sort(() => Math.random() - 0.5).slice(0, 3);
+            opts = [current, ...others].map(o => ({ id: o.id, text: o.translation, isCorrect: o.id === current.id })).sort(() => Math.random() - 0.5);
+        }
+        
         setOptions(opts);
         setSelectedId(null);
         setStatus("idle");
-    }, [currentIndex, flashcards]);
+    }, [currentIndex, items]);
 
-    if (!flashcards || flashcards.length < 4) return <EmptyState text="Cần ít nhất 4 từ vựng để tạo bài trắc nghiệm" />;
+    if (!items || items.length === 0) return <EmptyState text="Chưa có dữ liệu bài trắc nghiệm" />;
 
-    const current = flashcards[currentIndex];
+    const current = items[currentIndex];
 
     const handleSelect = (opt: any) => {
         if (status !== "idle") return;
         setSelectedId(opt.id);
-        if (opt.id === current.id) {
+        if (opt.isCorrect) {
             setStatus("correct");
             setScore(s => s + 1);
         } else {
@@ -431,7 +448,7 @@ function MCQChallenge({ flashcards }: { flashcards: any[] }) {
     };
 
     const handleNext = () => {
-        if (currentIndex === flashcards.length - 1) {
+        if (currentIndex === items.length - 1) {
             setIsFinished(true);
         } else {
             setCurrentIndex(i => i + 1);
@@ -443,7 +460,7 @@ function MCQChallenge({ flashcards }: { flashcards: any[] }) {
             <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100 max-w-2xl mx-auto">
                 <div className="text-6xl mb-4">🏆</div>
                 <h3 className="text-2xl font-bold text-gray-800 mb-2">Hoàn thành thử thách!</h3>
-                <p className="text-gray-500 mb-8">Bạn đạt được {score} / {flashcards.length} điểm.</p>
+                <p className="text-gray-500 mb-8">Bạn đạt được {score} / {items.length} điểm.</p>
                 <button 
                     onClick={() => { setCurrentIndex(0); setScore(0); setIsFinished(false); }}
                     className="px-8 py-3 bg-[#6A5ACD] text-white font-bold rounded-xl hover:bg-opacity-90 shadow-md"
@@ -459,7 +476,7 @@ function MCQChallenge({ flashcards }: { flashcards: any[] }) {
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-[#6A5ACD] mb-2">Trắc nghiệm tổng hợp</h2>
                 <p className="text-gray-500 text-sm">Chọn nghĩa đúng nhất cho từ vựng sau</p>
-                <div className="mt-4 text-xs font-bold text-gray-400 uppercase">Câu {currentIndex + 1} / {flashcards.length}</div>
+                <div className="mt-4 text-xs font-bold text-gray-400 uppercase">Câu {currentIndex + 1} / {items.length}</div>
             </div>
 
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
@@ -471,7 +488,7 @@ function MCQChallenge({ flashcards }: { flashcards: any[] }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     {options.map(opt => {
                         const isSelected = selectedId === opt.id;
-                        const isActuallyCorrect = opt.id === current.id;
+                        const isActuallyCorrect = opt.isCorrect;
                         let btnClass = "bg-white border-2 border-gray-100 text-gray-700 hover:border-[#D8B4E2] hover:bg-purple-50";
                         
                         if (status !== "idle") {
@@ -487,7 +504,7 @@ function MCQChallenge({ flashcards }: { flashcards: any[] }) {
                                 onClick={() => handleSelect(opt)}
                                 className={`p-4 rounded-xl text-lg font-medium transition-all text-center shadow-sm ${btnClass}`}
                             >
-                                {opt.translation}
+                                {opt.text}
                             </button>
                         )
                     })}
@@ -499,7 +516,7 @@ function MCQChallenge({ flashcards }: { flashcards: any[] }) {
                             onClick={handleNext}
                             className="px-8 py-3 bg-[#6A5ACD] text-white font-bold rounded-xl hover:bg-opacity-90 shadow-md"
                         >
-                            {currentIndex === flashcards.length - 1 ? 'Xem kết quả' : 'Câu tiếp theo →'}
+                            {currentIndex === items.length - 1 ? 'Xem kết quả' : 'Câu tiếp theo →'}
                         </button>
                     </div>
                 )}
@@ -544,10 +561,10 @@ export default function TabGames({ content }: { content: any }) {
               transition={{ duration: 0.2 }}
           >
               {activeGame === "match" && <MemoryMatch games={content.games || []} />}
-              {activeGame === "fill" && <SentenceFill sentences={content.sentences || []} />}
-              {activeGame === "order" && <DialogueReorder dialogues={content.dialogues || []} />}
-              {activeGame === "qa" && <SituationalQA situations={content.situations || []} />}
-              {activeGame === "mcq" && <MCQChallenge flashcards={content.flashcards || []} />}
+              {activeGame === "fill" && <SentenceFill sentences={content.gameFill?.length > 0 ? content.gameFill : (content.sentences || [])} />}
+              {activeGame === "order" && <DialogueReorder dialogues={content.gameOrder?.length > 0 ? content.gameOrder : (content.dialogues || [])} />}
+              {activeGame === "qa" && <SituationalQA situations={content.gameQA?.length > 0 ? content.gameQA : (content.situations || [])} />}
+              {activeGame === "mcq" && <MCQChallenge mcqs={content.gameMCQ || []} flashcardsFallback={content.flashcards || []} />}
           </motion.div>
       </AnimatePresence>
     </div>
